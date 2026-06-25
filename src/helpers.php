@@ -1,6 +1,6 @@
 <?php
 
-use UltimateLemon\Lens\Lens;
+use LensApp\Lens\Lens;
 
 if (! function_exists('lens')) {
     /**

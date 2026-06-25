@@ -1,6 +1,6 @@
 <?php
 
-namespace UltimateLemon\Lens;
+namespace LensApp\Lens;
 
 class Lens
 {

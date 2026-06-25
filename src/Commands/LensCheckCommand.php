@@ -1,6 +1,6 @@
 <?php
 
-namespace UltimateLemon\Lens\Commands;
+namespace LensApp\Lens\Commands;
 
 use Illuminate\Console\Command;
 

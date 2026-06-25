@@ -22,7 +22,7 @@ lens(['order' => $order, 'total' => $amount]);
 Install as a **dev dependency** (it's a debugging tool, just like `dd()`):
 
 ```bash
-composer require ultimatelemon/lens --dev
+composer require lensapp-eu/lens-php --dev
 ```
 
 In Laravel the package is auto-discovered. Nothing else to configure.
@@ -46,7 +46,7 @@ lens($request->all(), $user, $total);
 lens($order)->label('New order')->color('green');
 
 // Clear the screen
-\UltimateLemon\Lens\Lens::clear();
+\LensApp\Lens\Lens::clear();
 ```
 
 Available colors: `red`, `green`, `blue`, `orange`, `purple`, `gray`.
@@ -64,7 +64,7 @@ Exceptions show up as a red item with an expandable stack trace:
 
 ```php
 lens($exception);                          // a Throwable is detected automatically
-\UltimateLemon\Lens\Lens::exception($e);   // explicit
+\LensApp\Lens\Lens::exception($e);   // explicit
 ```
 
 In Laravel, reported exceptions are sent to Lens **automatically**. Disable it with:
@@ -88,11 +88,11 @@ LENS_MODELS=true    # Eloquent created / updated / deleted / restored
 Or enable them in code:
 
 ```php
-\UltimateLemon\Lens\Lens::showQueries();
-\UltimateLemon\Lens\Lens::showMails();   // shows the email's HTML in a sandboxed preview
-\UltimateLemon\Lens\Lens::showJobs();
-\UltimateLemon\Lens\Lens::showEvents();
-\UltimateLemon\Lens\Lens::showModels();
+\LensApp\Lens\Lens::showQueries();
+\LensApp\Lens\Lens::showMails();   // shows the email's HTML in a sandboxed preview
+\LensApp\Lens\Lens::showJobs();
+\LensApp\Lens\Lens::showEvents();
+\LensApp\Lens\Lens::showModels();
 ```
 
 ## Pause execution
@@ -100,7 +100,7 @@ Or enable them in code:
 Pause your code until you click **Continue** or **Stop** in the Lens app:
 
 ```php
-\UltimateLemon\Lens\Lens::pause();
+\LensApp\Lens\Lens::pause();
 ```
 
 Returns immediately if Lens is disabled or the app is not running, so it never hangs your app.
@@ -127,7 +127,7 @@ requires your one-time consent for this. Add this to your project's `composer.js
 ```json
 "config": {
   "allow-plugins": {
-    "ultimatelemon/lens": true
+    "lensapp-eu/lens-php": true
   }
 }
 ```
@@ -182,7 +182,7 @@ All `lens()` calls then become no-ops, no network traffic, no overhead touching 
 ```php
 require __DIR__ . '/vendor/autoload.php';
 
-use UltimateLemon\Lens\Lens;
+use LensApp\Lens\Lens;
 
 Lens::configure('127.0.0.1', 23600); // optional; these are the defaults
 lens('works without a framework too');

@@ -1,6 +1,6 @@
 <?php
 
-namespace UltimateLemon\Lens\Composer;
+namespace LensApp\Lens\Composer;
 
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;
