@@ -4,8 +4,8 @@ use LensApp\Lens\Lens;
 
 if (! function_exists('lens')) {
     /**
-     * Stuur een of meer waarden naar de Lens desktop-app.
-     * Chainbaar: lens('hallo')->color('red')->label('Test')
+     * Send one or more values to the Lens desktop app and Lens Cloud.
+     * Chainable: lens('hello')->red()->label('Test')
      */
     function lens(mixed ...$args): Lens
     {

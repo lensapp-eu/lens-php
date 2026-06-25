@@ -23,7 +23,7 @@ class LensTestCommand extends Command
 
         lens('Lens test payload', ['time' => now()->toDateTimeString()])
             ->label('artisan lens:test')
-            ->color('green');
+            ->green();
 
         $this->info("Sent a test payload to Lens ({$host}:{$port}).");
         $this->line('Open the Lens app, you should see a green "artisan lens:test" item.');

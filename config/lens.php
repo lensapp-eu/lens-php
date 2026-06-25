@@ -3,19 +3,41 @@
 return [
 
     /*
-     | Zet Lens aan of uit. Handig om in productie volledig uit te schakelen.
+     | Turn Lens on or off. Handy to fully disable it in production.
      */
     'enabled' => env('LENS_ENABLED', true),
 
     /*
-     | Host + poort waar de Lens desktop-app op luistert.
+     | The two delivery channels, independently toggleable:
+     |   - local: send to the Lens desktop app (live local debugging)
+     |   - cloud: send to Lens Cloud (needs a project key below)
+     | Examples: cloud only -> LENS_LOCAL=false; app only -> LENS_CLOUD=false.
+     */
+    'local' => env('LENS_LOCAL', true),
+    'cloud' => env('LENS_CLOUD', true),
+
+    /*
+     | Host and port the Lens desktop app listens on.
      */
     'host' => env('LENS_HOST', '127.0.0.1'),
     'port' => env('LENS_PORT', 23600),
 
     /*
-     | Vang Laravel-exceptions automatisch op en stuur ze naar Lens.
-     | Zet op false als je alleen handmatig wilt loggen.
+     | Your Lens Cloud project key. Copy it from your project's settings in
+     | Lens Cloud and set LENS_PROJECT_KEY in your .env. It links this project to the
+     | right project in Lens Cloud and the desktop app.
+     */
+    'key' => env('LENS_PROJECT_KEY'),
+
+    /*
+     | Lens Cloud base URL. Defaults to the hosted cloud; override for local dev.
+     | Events go here when 'cloud' is on and a key is set. Local dev: http://localhost:3000.
+     */
+    'cloud_url' => env('LENS_CLOUD_URL', 'https://app.lensapp.eu'),
+
+    /*
+     | Automatically catch Laravel exceptions and send them to Lens.
+     | Set to false if you only want to log manually.
      */
     'catch_exceptions' => env('LENS_CATCH_EXCEPTIONS', true),
 

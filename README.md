@@ -7,7 +7,7 @@ came from.
 
 ```php
 lens('hello');
-lens($user)->color('green')->label('Signed-in user');
+lens($user)->green()->label('Signed-in user');
 lens(['order' => $order, 'total' => $amount]);
 ```
 
@@ -31,6 +31,32 @@ In Laravel the package is auto-discovered. Nothing else to configure.
 > (`composer install --no-dev`). So don't leave `lens()` calls in code that ships to production -
 > treat it like `dd()`. See [Prevent commits with lens()](#prevent-commits-with-lens).
 
+## Connect to Lens Cloud (optional)
+
+To send this project's errors straight to [Lens Cloud](https://app.lensapp.eu), no desktop app
+required, copy your project's key from Lens Cloud and add one line to your `.env`:
+
+```env
+LENS_PROJECT_KEY=your-project-key-from-lens-cloud
+```
+
+That is all you need: with a key set, events go to Lens Cloud at `https://app.lensapp.eu` by
+default. Set `LENS_CLOUD_URL` only to point at a self-hosted or local cloud (e.g.
+`http://localhost:3000`).
+
+### Channels
+
+Lens sends to two channels, independently toggleable:
+
+```env
+LENS_LOCAL=true   # the desktop app (live local debugging), default on
+LENS_CLOUD=true   # Lens Cloud (needs a key), default on
+```
+
+So `LENS_LOCAL=false` gives you cloud only, and `LENS_CLOUD=false` gives you the desktop app only.
+Config is read from `config('lens.*')`, so it survives `php artisan config:cache`; run
+`php artisan config:clear` after changing your `.env`.
+
 ## Usage
 
 The global `lens()` helper is available everywhere:
@@ -43,13 +69,13 @@ lens('checkpoint reached');
 lens($request->all(), $user, $total);
 
 // Chaining: label and color
-lens($order)->label('New order')->color('green');
+lens($order)->label('New order')->green();
 
 // Clear the screen
 \LensApp\Lens\Lens::clear();
 ```
 
-Available colors: `red`, `green`, `blue`, `orange`, `purple`, `gray`.
+Available color shortcuts: `->red()`, `->green()`, `->blue()`, `->orange()`, `->purple()`, `->gray()`.
 
 In Blade views you can use the `@lens` directive:
 

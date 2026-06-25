@@ -1,6 +1,6 @@
 {
   "name": "lensapp-eu/lens-php",
-  "description": "Lens - stuur debug-payloads naar de Lens desktop-app",
+  "description": "Lens - send debug payloads to the Lens desktop app and Lens Cloud",
   "type": "composer-plugin",
   "license": "MIT",
   "keywords": ["debug", "debugging", "dump", "laravel", "lens", "developer-tools"],

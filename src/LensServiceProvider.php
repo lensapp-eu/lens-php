@@ -20,6 +20,21 @@ class LensServiceProvider extends ServiceProvider
             (int) ($config['port'] ?? 23600)
         );
 
+        if (! empty($config['key'])) {
+            Lens::key($config['key']);
+        }
+
+        if (! empty($config['cloud_url'])) {
+            Lens::setCloudUrl($config['cloud_url']);
+        }
+
+        if (array_key_exists('local', $config)) {
+            Lens::setLocal((bool) $config['local']);
+        }
+        if (array_key_exists('cloud', $config)) {
+            Lens::setCloud((bool) $config['cloud']);
+        }
+
         $enabled = ! array_key_exists('enabled', $config) || $config['enabled'];
 
         if (array_key_exists('enabled', $config)) {
@@ -73,7 +88,7 @@ class LensServiceProvider extends ServiceProvider
                 });
             }
         } catch (\Throwable $e) {
-            // Stil negeren: een debug-tool mag de app nooit breken.
+            // Silently ignore: a debug tool must never break the app.
         }
     }
 }

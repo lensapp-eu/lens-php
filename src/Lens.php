@@ -7,6 +7,13 @@ class Lens
     protected static ?string $host = null;
     protected static ?int $port = null;
     protected static ?bool $enabled = null;
+    protected static ?string $cloudKey = null;
+    protected static ?string $cloudUrl = null;
+    protected static ?bool $local = null; // send to the local desktop app
+    protected static ?bool $cloud = null; // send straight to Lens Cloud
+    protected static array $context = []; // extra context tags sent with every event
+
+    public const DEFAULT_CLOUD_URL = 'https://app.lensapp.eu';
     protected static bool $queriesHooked = false;
     protected static array $hooked = [];
     protected static $request = null; // null = not computed, false = CLI/none, array = context
@@ -293,7 +300,7 @@ class Lens
         ]);
     }
 
-    /** Stuur een exception/throwable netjes weergegeven naar Lens. */
+    /** Send an exception/throwable to Lens, nicely formatted. */
     public static function exception(\Throwable $e): void
     {
         static::transmit([
@@ -344,6 +351,143 @@ class Lens
     {
         static::$host = $host;
         static::$port = $port;
+    }
+
+    /**
+     * Set the Lens Cloud project key (links this project to Lens Cloud).
+     * Laravel sets this from config('lens.key'); otherwise LENS_PROJECT_KEY in the env is used.
+     */
+    public static function key(?string $key): void
+    {
+        static::$cloudKey = $key ?: null;
+    }
+
+    protected static function cloudKey(): ?string
+    {
+        if (static::$cloudKey !== null) {
+            return static::$cloudKey;
+        }
+        $env = getenv('LENS_PROJECT_KEY');
+        if ($env !== false && $env !== '') {
+            return $env;
+        }
+        return $_ENV['LENS_PROJECT_KEY'] ?? null;
+    }
+
+    /**
+     * Set the Lens Cloud base URL. When set (with a key), events are also sent
+     * straight to Lens Cloud. Laravel sets this from config('lens.cloud_url').
+     */
+    public static function setCloudUrl(?string $url): void
+    {
+        static::$cloudUrl = $url ? rtrim($url, '/') : null;
+    }
+
+    protected static function cloudUrl(): string
+    {
+        if (static::$cloudUrl !== null) {
+            return static::$cloudUrl;
+        }
+        $env = getenv('LENS_CLOUD_URL');
+        if ($env !== false && $env !== '') {
+            return rtrim($env, '/');
+        }
+        $env = $_ENV['LENS_CLOUD_URL'] ?? null;
+        if ($env) {
+            return rtrim($env, '/');
+        }
+        return static::DEFAULT_CLOUD_URL;
+    }
+
+    /** Enable/disable the two channels independently. */
+    public static function setLocal(?bool $on): void
+    {
+        static::$local = $on;
+    }
+
+    public static function setCloud(?bool $on): void
+    {
+        static::$cloud = $on;
+    }
+
+    /** Send to the local desktop app? (env LENS_LOCAL, default on) */
+    protected static function localEnabled(): bool
+    {
+        if (static::$local !== null) {
+            return static::$local;
+        }
+        return static::envBool('LENS_LOCAL', true);
+    }
+
+    /** Send to Lens Cloud? (env LENS_CLOUD, default on; still needs a project key) */
+    protected static function cloudEnabled(): bool
+    {
+        if (static::$cloud !== null) {
+            return static::$cloud;
+        }
+        return static::envBool('LENS_CLOUD', true);
+    }
+
+    protected static function envBool(string $name, bool $default): bool
+    {
+        $v = getenv($name);
+        if ($v === false || $v === '') {
+            $v = $_ENV[$name] ?? null;
+        }
+        if ($v === null || $v === '') {
+            return $default;
+        }
+        return ! in_array(strtolower((string) $v), ['false', '0', 'no', 'off'], true);
+    }
+
+    /**
+     * Attach extra context tags to every event (e.g. framework + version).
+     * Laravel's service provider uses this; you can call it yourself too.
+     */
+    public static function context(array $extra): void
+    {
+        static::$context = array_merge(static::$context, $extra);
+    }
+
+    /**
+     * Runtime info that helps debugging: PHP version, OS, hostname and the
+     * detected framework. Works for plain PHP, Laravel, Symfony, etc.
+     */
+    protected static function systemContext(): array
+    {
+        return array_filter([
+            'runtime'   => 'PHP ' . PHP_VERSION,
+            'os'        => trim(php_uname('s') . ' ' . php_uname('r')),
+            'hostname'  => gethostname() ?: null,
+            'framework' => static::detectFramework(),
+        ], static fn ($v) => $v !== null && $v !== '');
+    }
+
+    /**
+     * Best-effort framework detection from well-known version constants.
+     * Falls back to "Plain PHP" when no framework is detected.
+     */
+    protected static function detectFramework(): string
+    {
+        if (defined('\Illuminate\Foundation\Application::VERSION')) {
+            return 'Laravel ' . constant('\Illuminate\Foundation\Application::VERSION');
+        }
+        if (defined('\Symfony\Component\HttpKernel\Kernel::VERSION')) {
+            return 'Symfony ' . constant('\Symfony\Component\HttpKernel\Kernel::VERSION');
+        }
+        if (defined('CAKE_VERSION')) {
+            return 'CakePHP ' . constant('CAKE_VERSION');
+        }
+        if (defined('CodeIgniter\\CodeIgniter::CI_VERSION')) {
+            return 'CodeIgniter ' . constant('CodeIgniter\\CodeIgniter::CI_VERSION');
+        }
+        if (defined('YII_BEGIN_TIME') && class_exists('\Yii')) {
+            return 'Yii';
+        }
+        if (defined('WPINC')) {
+            return 'WordPress' . (isset($GLOBALS['wp_version']) ? ' ' . $GLOBALS['wp_version'] : '');
+        }
+        return 'Plain PHP';
     }
 
     public static function enable(): void
@@ -458,11 +602,24 @@ class Lens
         }
 
         $payload['time'] = $payload['time'] ?? (int) round(microtime(true) * 1000);
-        $payload['meta'] = ['client' => 'php', 'version' => '1.2.0'];
+        $payload['meta'] = ['client' => 'php', 'version' => '2.1.0'];
+
+        $key = static::cloudKey();
+        if ($key) {
+            $payload['key'] = $key;
+        }
 
         $request = static::requestContext();
         if ($request !== null && ($payload['type'] ?? null) !== 'clear') {
             $payload['request'] = $request;
+        }
+
+        $type = $payload['type'] ?? 'log';
+        if ($type !== 'clear' && $type !== 'pause') {
+            $context = array_merge(static::systemContext(), static::$context);
+            if (! empty($context)) {
+                $payload['context'] = $context;
+            }
         }
 
         $json = json_encode($payload, JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_UNESCAPED_UNICODE);
@@ -470,19 +627,42 @@ class Lens
             return;
         }
 
-        $url = sprintf('http://%s:%d', static::host(), static::port());
+        // Channel 1: the local Lens desktop app (best-effort).
+        if (static::localEnabled()) {
+            $url = sprintf('http://%s:%d', static::host(), static::port());
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST              => true,
+                CURLOPT_POSTFIELDS        => $json,
+                CURLOPT_HTTPHEADER        => ['Content-Type: application/json'],
+                CURLOPT_RETURNTRANSFER    => true,
+                CURLOPT_TIMEOUT_MS        => 1000,
+                CURLOPT_CONNECTTIMEOUT_MS => 300,
+            ]);
+            curl_exec($ch);
+            curl_close($ch);
+            // Errors are intentionally ignored: debugging must never break your app.
+        }
 
-        $ch = curl_init($url);
+        // Channel 2: Lens Cloud (needs a project key; no desktop required).
+        if (static::cloudEnabled() && $key && $type !== 'clear' && $type !== 'pause') {
+            static::transmitCloud(static::cloudUrl(), $key, $json);
+        }
+    }
+
+    protected static function transmitCloud(string $cloudUrl, string $key, string $json): void
+    {
+        $ch = curl_init($cloudUrl . '/api/ingest');
         curl_setopt_array($ch, [
             CURLOPT_POST              => true,
             CURLOPT_POSTFIELDS        => $json,
-            CURLOPT_HTTPHEADER        => ['Content-Type: application/json'],
+            CURLOPT_HTTPHEADER        => ['Content-Type: application/json', 'x-lens-key: ' . $key],
             CURLOPT_RETURNTRANSFER    => true,
-            CURLOPT_TIMEOUT_MS        => 1000,
-            CURLOPT_CONNECTTIMEOUT_MS => 300,
+            CURLOPT_TIMEOUT_MS        => 2000,
+            CURLOPT_CONNECTTIMEOUT_MS => 500,
         ]);
         curl_exec($ch);
         curl_close($ch);
-        // Fouten worden bewust genegeerd: debuggen mag je app nooit breken.
+        // Errors ignored on purpose: monitoring must never break your app.
     }
 }
